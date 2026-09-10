@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "strict": false,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "*": [
+        "/tmp/tasklet-deps/site-sentinel-b2a56b860169/node_modules/*"
+      ]
+    },
+    "typeRoots": [
+      "/tmp/tasklet-deps/site-sentinel-b2a56b860169/node_modules/@types"
+    ],
+    "types": [
+      "react",
+      "react-dom"
+    ]
+  },
+  "include": [
+    "./**/*.tsx",
+    "./**/*.ts",
+    "./**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
