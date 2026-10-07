@@ -1,0 +1,6 @@
+{
+  "name": "site-sentinel",
+  "displayName": "Construct gaurd · AI Safety Intelligence",
+  "description": "YOLO-powered construction safety with image detection, automatic risk scoring, corrective-action tracking and dedicated analytics.",
+  "instantAppType": "tsx"
+}
