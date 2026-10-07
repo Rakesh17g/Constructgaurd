@@ -1,13 +1,7 @@
 {
-    "cleanUrls": true,
-    "rewrites": [
-        {
-            "source": "/(.*)",
-            "destination": "/index.html"
-        }
-    ],
     "headers": [
         {
+            "comment": "ONNX model file — ensure correct MIME type so browsers don't reject it",
             "source": "/models/(.*).onnx",
             "headers": [
                 {
@@ -21,6 +15,7 @@
             ]
         },
         {
+            "comment": "WASM files — correct MIME type required for streaming compilation",
             "source": "/onnxruntime/(.*).wasm",
             "headers": [
                 {
@@ -34,7 +29,8 @@
             ]
         },
         {
-            "source": "/(.*)\\.html",
+            "comment": "HTML pages — COOP+COEP only on the app shell so WASM threads can use SharedArrayBuffer if needed",
+            "source": "/(.*).html",
             "headers": [
                 {
                     "key": "Cross-Origin-Opener-Policy",
@@ -47,6 +43,7 @@
             ]
         },
         {
+            "comment": "Root HTML (SPA) — same COOP/COEP as above",
             "source": "/",
             "headers": [
                 {
