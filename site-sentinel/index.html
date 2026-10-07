@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Construct gaurd</title>
+
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- DaisyUI and Tailwind CSS for the main dashboard UI -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            // Custom premium colors mapped back to the dashboard
+            base: {
+              100: '#050506',
+              200: '#0b0b0d',
+              300: '#141418',
+              content: '#f5f5f7'
+            },
+            primary: {
+              DEFAULT: '#ffffff',
+              focus: '#e5e5ea',
+              content: '#090909'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Enforce the hero's premium dark aesthetic across the entire app */
+    html,
+    body {
+      background-color: #050506 !important;
+      color: #f5f5f7;
+      font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    }
+
+    /* Base variable overwrites for DaisyUI dark theme to match Hero */
+    :root[data-theme="dark"] {
+      --b1: 232 9% 2%;
+      /* #050506 */
+      --b2: 240 8% 5%;
+      /* slightly lighter */
+      --b3: 240 9% 9%;
+      --bc: 240 10% 96%;
+      /* #f5f5f7 */
+      --p: 0 0% 100%;
+      /* white primary */
+      --pc: 0 0% 4%;
+      /* dark text on white */
+      --rounded-box: 1rem;
+      --rounded-btn: 999px;
+      /* Pill shaped buttons matching hero */
+    }
+
+    /* Dashboard specific overrides for glassmorphism like the Hero */
+    .topbar,
+    .sidebar {
+      border-color: rgba(255, 255, 255, 0.08) !important;
+      background: transparent !important;
+    }
+
+    .panel,
+    .card,
+    .bg-base-200 {
+      background-color: rgba(255, 255, 255, 0.035) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .btn {
+      transition: all 0.22s ease-in-out;
+    }
+
+    .btn-primary {
+      box-shadow: 0 12px 30px rgba(255, 255, 255, 0.13) !important;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 38px rgba(255, 255, 255, 0.19) !important;
+    }
+
+    .input,
+    .select {
+      background-color: rgba(255, 255, 255, 0.05) !important;
+      border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .input:focus,
+    .select:focus {
+      border-color: rgba(255, 255, 255, 0.2) !important;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/app.tsx"></script>
+</body>
+
+</html>
