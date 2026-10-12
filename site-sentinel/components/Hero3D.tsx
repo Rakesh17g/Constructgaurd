@@ -115,7 +115,7 @@ export const Hero3D = ({ go }: { go: (role: 'reporter' | 'safety_officer') => vo
 
                 <h1 className="hero3d-heading">
                     <span className="hero3d-heading-line1">Construct</span>
-                    <span className="hero3d-heading-line2">gaurd.</span>
+                    <span className="hero3d-heading-line2">Gaurd.</span>
                 </h1>
 
                 <p className="hero3d-description">

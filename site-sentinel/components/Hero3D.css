@@ -17,8 +17,13 @@
 }
 
 @keyframes hero-entrance {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .hero3d-spline-layer {
@@ -35,8 +40,15 @@
 }
 
 @keyframes spline-entrance {
-  from { opacity: 0; transform: translateX(15%) scale(0.97); }
-  to { opacity: 1; transform: translateX(15%) scale(1.08); }
+  from {
+    opacity: 0;
+    transform: translateX(15%) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(15%) scale(1.08);
+  }
 }
 
 @media (max-width: 900px) {
@@ -50,9 +62,17 @@
     animation-delay: 0.15s;
     flex-grow: 1;
   }
+
   @keyframes spline-entrance-mobile {
-    from { opacity: 0; transform: scale(0.97); }
-    to { opacity: 1; transform: scale(1); }
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 }
 
@@ -83,8 +103,15 @@
 }
 
 @keyframes text-entrance {
-  from { opacity: 0; transform: translateX(-35px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-35px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @media (max-width: 900px) {
@@ -95,6 +122,7 @@
     overflow-y: auto;
     overflow-x: hidden;
   }
+
   .hero3d-text-layer {
     position: relative;
     width: 100%;
@@ -115,6 +143,7 @@
     padding-bottom: 28px;
   }
 }
+
 @media (max-height: 650px) and (min-width: 901px) {
   .hero3d-text-layer {
     padding-top: 20px;
@@ -150,35 +179,56 @@
 }
 
 @media (max-height: 760px) and (min-width: 901px) {
-  .hero3d-eyebrow { margin-bottom: 14px; }
+  .hero3d-eyebrow {
+    margin-bottom: 14px;
+  }
 }
+
 @media (max-height: 650px) and (min-width: 901px) {
-  .hero3d-eyebrow { margin-bottom: 11px; font-size: 8px; }
+  .hero3d-eyebrow {
+    margin-bottom: 11px;
+    font-size: 8px;
+  }
 }
+
 @media (max-width: 580px) {
-  .hero3d-eyebrow { font-size: 8px; margin-bottom: 19px; }
+  .hero3d-eyebrow {
+    font-size: 8px;
+    margin-bottom: 19px;
+  }
 }
 
 .hero3d-heading {
   max-width: 620px;
   margin: 0;
   font-weight: 590;
-  line-height: 0.88;
+  line-height: 0.94;
   letter-spacing: -0.075em;
   font-size: clamp(58px, min(7vw, 13vh), 108px);
 }
 
 @media (max-height: 760px) and (min-width: 901px) {
-  .hero3d-heading { font-size: clamp(55px, 11.5vh, 82px); }
+  .hero3d-heading {
+    font-size: clamp(55px, 11.5vh, 82px);
+  }
 }
+
 @media (max-height: 650px) and (min-width: 901px) {
-  .hero3d-heading { font-size: clamp(50px, 11vh, 70px); }
+  .hero3d-heading {
+    font-size: clamp(50px, 11vh, 70px);
+  }
 }
+
 @media (max-width: 900px) {
-  .hero3d-heading { font-size: clamp(58px, 14vw, 86px); }
+  .hero3d-heading {
+    font-size: clamp(58px, 14vw, 86px);
+  }
 }
+
 @media (max-width: 580px) {
-  .hero3d-heading { font-size: clamp(53px, 17vw, 72px); }
+  .hero3d-heading {
+    font-size: clamp(53px, 17vw, 72px);
+  }
 }
 
 .hero3d-heading-line1 {
@@ -193,7 +243,7 @@
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
-  padding-bottom: 8px;
+  padding-bottom: 12px;
 }
 
 .hero3d-description {
@@ -206,13 +256,28 @@
 }
 
 @media (max-height: 760px) and (min-width: 901px) {
-  .hero3d-description { margin-top: 14px; font-size: 14px; line-height: 1.55; }
+  .hero3d-description {
+    margin-top: 14px;
+    font-size: 14px;
+    line-height: 1.55;
+  }
 }
+
 @media (max-height: 650px) and (min-width: 901px) {
-  .hero3d-description { max-width: 480px; margin-top: 10px; font-size: 13px; line-height: 1.45; }
+  .hero3d-description {
+    max-width: 480px;
+    margin-top: 10px;
+    font-size: 13px;
+    line-height: 1.45;
+  }
 }
+
 @media (max-width: 580px) {
-  .hero3d-description { margin-top: 19px; font-size: 14px; line-height: 1.65; }
+  .hero3d-description {
+    margin-top: 19px;
+    font-size: 14px;
+    line-height: 1.65;
+  }
 }
 
 .hero3d-buttons {
@@ -224,13 +289,22 @@
 }
 
 @media (max-height: 760px) and (min-width: 901px) {
-  .hero3d-buttons { margin-top: 18px; }
+  .hero3d-buttons {
+    margin-top: 18px;
+  }
 }
+
 @media (max-height: 650px) and (min-width: 901px) {
-  .hero3d-buttons { margin-top: 14px; }
+  .hero3d-buttons {
+    margin-top: 14px;
+  }
 }
+
 @media (max-width: 580px) {
-  .hero3d-buttons { flex-direction: column; margin-top: 26px; }
+  .hero3d-buttons {
+    flex-direction: column;
+    margin-top: 26px;
+  }
 }
 
 .hero3d-btn {
@@ -249,13 +323,23 @@
 }
 
 @media (max-height: 760px) and (min-width: 901px) {
-  .hero3d-btn { height: 44px; }
+  .hero3d-btn {
+    height: 44px;
+  }
 }
+
 @media (max-height: 650px) and (min-width: 901px) {
-  .hero3d-btn { height: 40px; font-size: 12px !important; }
+  .hero3d-btn {
+    height: 40px;
+    font-size: 12px !important;
+  }
 }
+
 @media (max-width: 580px) {
-  .hero3d-btn { width: 100%; height: 45px; }
+  .hero3d-btn {
+    width: 100%;
+    height: 45px;
+  }
 }
 
 .hero3d-btn-primary {
@@ -306,13 +390,21 @@
 }
 
 @media (max-height: 760px) and (min-width: 901px) {
-  .hero3d-features { margin-top: 20px; }
+  .hero3d-features {
+    margin-top: 20px;
+  }
 }
+
 @media (max-height: 650px) and (min-width: 901px) {
-  .hero3d-features { margin-top: 14px; }
+  .hero3d-features {
+    margin-top: 14px;
+  }
 }
+
 @media (max-width: 580px) {
-  .hero3d-features { display: none; }
+  .hero3d-features {
+    display: none;
+  }
 }
 
 .hero3d-feature {
@@ -339,7 +431,9 @@
 }
 
 @media (max-height: 650px) and (min-width: 901px) {
-  .hero3d-feature-separator { height: 22px; }
+  .hero3d-feature-separator {
+    height: 22px;
+  }
 }
 
 .hero3d-loader {
@@ -364,8 +458,13 @@
 }
 
 @keyframes hero3d-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .hero3d-loader-text {
@@ -396,19 +495,39 @@
 }
 
 @keyframes status-float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-5px); }
-  100% { transform: translateY(0px); }
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
 }
 
 @media (max-height: 760px) and (min-width: 901px) {
-  .hero3d-status-badge { bottom: 20px; padding: 10px 12px; }
+  .hero3d-status-badge {
+    bottom: 20px;
+    padding: 10px 12px;
+  }
 }
+
 @media (max-height: 650px) and (min-width: 901px) {
-  .hero3d-status-badge { right: 18px; bottom: 16px; padding: 9px 11px; }
+  .hero3d-status-badge {
+    right: 18px;
+    bottom: 16px;
+    padding: 9px 11px;
+  }
 }
+
 @media (max-width: 580px) {
-  .hero3d-status-badge { right: 18px; bottom: 18px; }
+  .hero3d-status-badge {
+    right: 18px;
+    bottom: 18px;
+  }
 }
 
 .hero3d-status-icon {
@@ -424,7 +543,10 @@
 }
 
 @media (max-height: 650px) and (min-width: 901px) {
-  .hero3d-status-icon { width: 27px; height: 27px; }
+  .hero3d-status-icon {
+    width: 27px;
+    height: 27px;
+  }
 }
 
 .hero3d-status-dot {
@@ -457,7 +579,8 @@
   height: 500px;
   border-radius: 50%;
   pointer-events: none;
-  opacity: 0; /* Changed to 0 initially to hide it until it's active */
+  opacity: 0;
+  /* Changed to 0 initially to hide it until it's active */
   filter: blur(16px);
   mix-blend-mode: screen;
   background: radial-gradient(circle, rgba(255, 255, 255, 0.12), rgba(135, 101, 255, 0.07) 30%, transparent 70%);
@@ -467,6 +590,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .hero3d-container,
   .hero3d-spline-layer,
   .hero3d-text-layer {
@@ -474,9 +598,11 @@
     opacity: 1 !important;
     transform: none !important;
   }
+
   .hero3d-spinner {
     animation: none !important;
   }
+
   .hero3d-status-badge {
     animation: none !important;
   }
