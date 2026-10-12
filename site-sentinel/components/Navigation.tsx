@@ -1,5 +1,6 @@
 import React from 'react';
 import { ShieldCheck, LayoutDashboard, ScanLine, ClipboardCheck, Building2, Layers, ArrowUpRight, HardHat, ChartNoAxesCombined, LogOut } from 'lucide-react';
+import { Role } from '../types';
 
 interface NavigationProps {
     page: string;
@@ -7,10 +8,11 @@ interface NavigationProps {
     active: number;
     save: string;
     userEmail?: string;
+    role?: Role;
     onSignOut?: () => void;
 }
 
-export const Navigation: React.FC<NavigationProps> = ({ page, setPage, active, save, userEmail, onSignOut }) => {
+export const Navigation: React.FC<NavigationProps> = ({ page, setPage, active, save, userEmail, role = 'reporter', onSignOut }) => {
     const initials = userEmail ? userEmail.slice(0, 2).toUpperCase() : 'RG';
     const displayName = userEmail ? userEmail.split('@')[0] : 'Rakesh G';
 
@@ -27,17 +29,22 @@ export const Navigation: React.FC<NavigationProps> = ({ page, setPage, active, s
             </div>
             <p className="nav-label text-base-content/40">WORKSPACE</p>
             <nav>
-                {([['Overview', LayoutDashboard], ['Inspections', ScanLine], ['Corrective actions', ClipboardCheck], ['Sites & zones', Building2], ['Analytics', ChartNoAxesCombined]] as [string, React.FC<{ size: number }>][]).map(([name, Icon]) => (
-                    <button
-                        key={name}
-                        className={`btn btn-ghost nav-item ${page === name ? 'bg-primary/10 text-primary' : ''}`}
-                        onClick={() => setPage(name)}
-                    >
-                        <Icon size={19} />
-                        <span>{name}</span>
-                        {name === 'Corrective actions' && <span className="badge badge-sm badge-outline">{active}</span>}
-                    </button>
-                ))}
+                {([['Overview', LayoutDashboard], ['Inspections', ScanLine], ['Corrective actions', ClipboardCheck], ['Sites & zones', Building2], ['Analytics', ChartNoAxesCombined]] as [string, React.FC<{ size: number }>][])
+                    .filter(([name]) => {
+                        if (role === 'reporter') return name === 'Inspections';
+                        return name !== 'Inspections';
+                    })
+                    .map(([name, Icon]) => (
+                        <button
+                            key={name}
+                            className={`btn btn-ghost nav-item ${page === name ? 'bg-primary/10 text-primary' : ''}`}
+                            onClick={() => setPage(name)}
+                        >
+                            <Icon size={19} />
+                            <span>{name}</span>
+                            {name === 'Corrective actions' && <span className="badge badge-sm badge-outline">{active}</span>}
+                        </button>
+                    ))}
             </nav>
             <div className="sidebar-bottom">
                 <div className="card bg-base-100 p-4 gap-3">
@@ -62,7 +69,7 @@ export const Navigation: React.FC<NavigationProps> = ({ page, setPage, active, s
                         <strong className="text-xs" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {displayName}
                         </strong>
-                        <small className="text-base-content/50">Workspace {save}</small>
+                        <small className="text-base-content/50" style={{ textTransform: 'capitalize' }}>{role.replace('_', ' ')} · {save}</small>
                     </div>
                     {onSignOut && (
                         <button

@@ -6,27 +6,98 @@ import './Auth.css';
 type Mode = 'signin' | 'signup' | 'forgot' | 'reset';
 
 interface AuthProps {
+    intendedRole?: 'reporter' | 'safety_officer' | null;
     onAuthenticated: () => void;
+    onSwitchRole?: () => void;
 }
 
-function getErrorMessage(error: unknown): string {
-    if (!error) return 'An unexpected error occurred.';
-    const msg = (error as { message?: string }).message || String(error);
-
-    // Map Supabase error messages to user-friendly strings
-    if (msg.includes('Invalid login credentials')) return 'Email or password is incorrect. Please try again.';
-    if (msg.includes('User already registered')) return 'An account with this email already exists. Try signing in.';
-    if (msg.includes('Password should be at least')) return 'Password must be at least 6 characters long.';
-    if (msg.includes('Email not confirmed')) return 'Please verify your email before signing in. Check your inbox.';
-    if (msg.includes('Email rate limit exceeded')) return 'Too many requests. Please wait a few minutes and try again.';
-    if (msg.includes('Token has expired')) return 'This reset link has expired. Please request a new one.';
-    if (msg.toLowerCase().includes('network') || msg.includes('fetch')) return 'Network error. Please check your connection.';
-    if (msg.includes('For security purposes')) return 'For security reasons, please wait before requesting another email.';
-    // Don't expose raw Supabase internals
-    return 'Something went wrong. Please try again.';
+interface DiagnosticAuthError {
+    name?: string;
+    message?: string;
+    status?: number;
+    code?: string;
 }
 
-export const Auth: React.FC<AuthProps> = ({ onAuthenticated }) => {
+interface ErrorDetails {
+    message: string;
+    isRateLimit: boolean;
+    isExistingUser: boolean;
+    retryAfter?: number;
+}
+
+function getErrorMessage(error: unknown, operation = 'auth'): ErrorDetails {
+    if (!error) {
+        return {
+            message: 'An unexpected error occurred. Please try again.',
+            isRateLimit: false,
+            isExistingUser: false,
+        };
+    }
+
+    const err = error as DiagnosticAuthError;
+    const rawMsg = err.message || String(error);
+    const msg = rawMsg.toLowerCase();
+    const status = err.status;
+    const code = err.code || '';
+
+    // Safe developer diagnostic logging (strictly no passwords, tokens, or credentials)
+    console.warn(`[Constructgaurd Auth] Operation '${operation}' failed:`, {
+        code,
+        status,
+        message: rawMsg,
+    });
+
+    const isRateLimit = status === 429 || code === 'over_email_send_rate_limit' || msg.includes('rate limit');
+    if (isRateLimit) {
+        return {
+            message: 'Email sending rate limit reached. Supabase free/default email service allows a maximum of 2 emails per hour.',
+            isRateLimit: true,
+            isExistingUser: false,
+            retryAfter: 60,
+        };
+    }
+
+    const isExistingUser = code === 'user_already_exists' || msg.includes('user already registered') || msg.includes('already registered');
+    if (isExistingUser) {
+        return {
+            message: 'An account with this email already exists. Try signing in.',
+            isRateLimit: false,
+            isExistingUser: true,
+        };
+    }
+
+    if (code === 'email_address_invalid' || msg.includes('invalid email') || msg.includes('unable to validate email')) {
+        return { message: 'Please enter a valid email address.', isRateLimit: false, isExistingUser: false };
+    }
+    if (msg.includes('invalid login credentials')) {
+        return { message: 'Email or password is incorrect. Please try again.', isRateLimit: false, isExistingUser: false };
+    }
+    if (msg.includes('password should be at least')) {
+        return { message: 'Password must be at least 6 characters long.', isRateLimit: false, isExistingUser: false };
+    }
+    if (msg.includes('email not confirmed')) {
+        return { message: 'Please verify your email before signing in. Check your inbox.', isRateLimit: false, isExistingUser: false };
+    }
+    if (msg.includes('token has expired') || code === 'token_expired') {
+        return { message: 'This link has expired. Please request a new one.', isRateLimit: false, isExistingUser: false };
+    }
+    if (msg.includes('network') || msg.includes('fetch') || msg.includes('failed to fetch')) {
+        return { message: 'Network error. Please check your internet connection.', isRateLimit: false, isExistingUser: false };
+    }
+    if (msg.includes('security purposes')) {
+        return { message: 'For security reasons, please wait a moment before requesting another email.', isRateLimit: false, isExistingUser: false };
+    }
+    if (msg.includes('database error') || msg.includes('profile provisioning')) {
+        return { message: 'Your account could not be created because profile provisioning failed. Please try again.', isRateLimit: false, isExistingUser: false };
+    }
+    if (msg.includes('requires approval') || msg.includes('pending approval')) {
+        return { message: 'Your Safety Officer account requires approval.', isRateLimit: false, isExistingUser: false };
+    }
+
+    return { message: 'Registration could not be completed. Please try again.', isRateLimit: false, isExistingUser: false };
+}
+
+export const Auth: React.FC<AuthProps> = ({ intendedRole, onAuthenticated, onSwitchRole }) => {
     const [mode, setMode] = useState<Mode>('signin');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -34,13 +105,39 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [cooldownSeconds, setCooldownSeconds] = useState(0);
+    const [existingAccountDetected, setExistingAccountDetected] = useState(false);
     const [error, setError] = useState('');
     const [info, setInfo] = useState('');
     const [success, setSuccess] = useState('');
 
-    const clearMessages = () => { setError(''); setInfo(''); setSuccess(''); };
+    // Synchronous submission lock to prevent concurrent requests before state updates re-render
+    const isSubmittingRef = React.useRef(false);
+
+    // Active cooldown countdown timer
+    React.useEffect(() => {
+        if (cooldownSeconds <= 0) return;
+        const interval = setInterval(() => {
+            setCooldownSeconds(prev => {
+                if (prev <= 1) {
+                    clearInterval(interval);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [cooldownSeconds]);
+
+    const clearMessages = () => {
+        setError('');
+        setInfo('');
+        setSuccess('');
+        setExistingAccountDetected(false);
+    };
 
     const handleTabChange = (m: 'signin' | 'signup') => {
+        if (loading) return; // Prevent switching while request is in flight
         setMode(m);
         clearMessages();
         setPassword('');
@@ -49,15 +146,40 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated }) => {
     const handleSignIn = async (e: React.FormEvent) => {
         e.preventDefault();
         clearMessages();
-        if (!email || !password) { setError('Please enter your email and password.'); return; }
+
+        // Synchronous guard against double clicks or race conditions
+        if (isSubmittingRef.current || loading) return;
+
+        const cleanEmail = email.trim();
+        if (!cleanEmail || !password) {
+            setError('Please enter your email and password.');
+            return;
+        }
+
+        isSubmittingRef.current = true;
         setLoading(true);
         try {
-            const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-            if (error) { setError(getErrorMessage(error)); return; }
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email: cleanEmail,
+                password,
+            });
+            if (signInError) {
+                const details = getErrorMessage(signInError, 'signInWithPassword');
+                setError(details.message);
+                if (details.isRateLimit) {
+                    setCooldownSeconds(details.retryAfter || 60);
+                }
+                return;
+            }
             onAuthenticated();
         } catch (err) {
-            setError(getErrorMessage(err));
+            const details = getErrorMessage(err, 'signInWithPassword');
+            setError(details.message);
+            if (details.isRateLimit) {
+                setCooldownSeconds(details.retryAfter || 60);
+            }
         } finally {
+            isSubmittingRef.current = false;
             setLoading(false);
         }
     };
@@ -65,22 +187,88 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated }) => {
     const handleSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
         clearMessages();
-        if (!email || !password) { setError('Please enter your email and password.'); return; }
-        if (password.length < 6) { setError('Password must be at least 6 characters long.'); return; }
+
+        // Synchronous guard against double clicks and active cooldown
+        if (isSubmittingRef.current || loading || cooldownSeconds > 0) return;
+
+        const cleanEmail = email.trim();
+        if (!cleanEmail) {
+            setError('Please enter your email address.');
+            return;
+        }
+
+        // Standard RFC-compliant client email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(cleanEmail)) {
+            setError('Please enter a valid email address.');
+            return;
+        }
+
+        if (!password) {
+            setError('Please enter a password.');
+            return;
+        }
+
+        if (password.length < 6) {
+            setError('Password must be at least 6 characters long.');
+            return;
+        }
+
+        isSubmittingRef.current = true;
         setLoading(true);
         try {
-            const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
-            if (error) { setError(getErrorMessage(error)); return; }
-            // If user is immediately confirmed (e.g. email confirmation disabled)
-            if (data.session) {
+            const roleToAssign = intendedRole || 'reporter';
+            const { data, error: signUpError } = await supabase.auth.signUp({
+                email: cleanEmail,
+                password,
+                options: {
+                    emailRedirectTo: window.location.origin,
+                    data: {
+                        intended_role: roleToAssign,
+                        role: roleToAssign === 'safety_officer' ? 'safety_officer' : 'reporter'
+                    }
+                }
+            });
+
+            if (signUpError) {
+                const details = getErrorMessage(signUpError, 'signUp');
+                setError(details.message);
+                if (details.isRateLimit) {
+                    setCooldownSeconds(details.retryAfter || 60);
+                }
+                if (details.isExistingUser) {
+                    setExistingAccountDetected(true);
+                }
+                return;
+            }
+
+            // Supabase returns an empty identities array if the user is already registered
+            // when email confirmation is active (to prevent user enumeration).
+            if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+                setError('An account with this email already exists.');
+                setExistingAccountDetected(true);
+                return;
+            }
+
+            // If session is returned immediately (e.g. email confirmation disabled on project)
+            if (data?.session) {
                 onAuthenticated();
             } else {
-                setInfo('Account created! Please check your email and click the confirmation link to activate your account.');
+                // Email confirmation is required by Supabase Auth configuration
+                setInfo('Your account was created, but email verification is still required. Please check your inbox and click the confirmation link to activate your account.');
                 setPassword('');
             }
         } catch (err) {
-            setError(getErrorMessage(err));
+            const details = getErrorMessage(err, 'signUp');
+            setError(details.message);
+            if (details.isRateLimit) {
+                setCooldownSeconds(details.retryAfter || 60);
+            }
+            if (details.isExistingUser) {
+                setExistingAccountDetected(true);
+            }
         } finally {
+            isSubmittingRef.current = false;
             setLoading(false);
         }
     };
@@ -88,17 +276,32 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated }) => {
     const handleForgotPassword = async (e: React.FormEvent) => {
         e.preventDefault();
         clearMessages();
+        if (isSubmittingRef.current || loading || cooldownSeconds > 0) return;
+
         if (!email) { setError('Please enter your email address.'); return; }
+        isSubmittingRef.current = true;
         setLoading(true);
         try {
-            const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+            const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
                 redirectTo: `${window.location.origin}${window.location.pathname}`,
             });
-            if (error) { setError(getErrorMessage(error)); return; }
+            if (resetError) {
+                const details = getErrorMessage(resetError, 'resetPasswordForEmail');
+                setError(details.message);
+                if (details.isRateLimit) {
+                    setCooldownSeconds(details.retryAfter || 60);
+                }
+                return;
+            }
             setSuccess('Password reset email sent. Please check your inbox and click the link to reset your password.');
         } catch (err) {
-            setError(getErrorMessage(err));
+            const details = getErrorMessage(err, 'resetPasswordForEmail');
+            setError(details.message);
+            if (details.isRateLimit) {
+                setCooldownSeconds(details.retryAfter || 60);
+            }
         } finally {
+            isSubmittingRef.current = false;
             setLoading(false);
         }
     };
@@ -106,27 +309,68 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated }) => {
     const handleResetPassword = async (e: React.FormEvent) => {
         e.preventDefault();
         clearMessages();
+        if (isSubmittingRef.current || loading) return;
+
         if (!newPassword) { setError('Please enter your new password.'); return; }
         if (newPassword.length < 6) { setError('Password must be at least 6 characters long.'); return; }
+        isSubmittingRef.current = true;
         setLoading(true);
         try {
-            const { error } = await supabase.auth.updateUser({ password: newPassword });
-            if (error) { setError(getErrorMessage(error)); return; }
+            const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+            if (updateError) {
+                const details = getErrorMessage(updateError, 'updateUser');
+                setError(details.message);
+                return;
+            }
             setSuccess('Password updated successfully!');
             setTimeout(() => onAuthenticated(), 1500);
         } catch (err) {
-            setError(getErrorMessage(err));
+            const details = getErrorMessage(err, 'updateUser');
+            setError(details.message);
         } finally {
+            isSubmittingRef.current = false;
             setLoading(false);
         }
     };
 
     const renderMessages = () => (
         <>
+            {cooldownSeconds > 0 && (
+                <div className="auth-rate-limit-banner" role="alert">
+                    <div className="auth-rate-limit-header">
+                        <AlertCircle size={15} />
+                        <span>Email sending temporarily limited</span>
+                    </div>
+                    <div>
+                        Supabase allows 2 verification emails per hour without custom SMTP. Please wait{' '}
+                        <strong>{cooldownSeconds}s</strong> before retrying.
+                    </div>
+                    {mode === 'signup' && (
+                        <button
+                            type="button"
+                            className="auth-action-link"
+                            onClick={() => handleTabChange('signin')}
+                        >
+                            Already registered? Switch to Sign In &rarr;
+                        </button>
+                    )}
+                </div>
+            )}
             {error && (
                 <div className="auth-error" role="alert">
                     <AlertCircle size={14} className="auth-msg-icon" />
-                    <span>{error}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                        <span>{error}</span>
+                        {existingAccountDetected && mode === 'signup' && (
+                            <button
+                                type="button"
+                                className="auth-action-link"
+                                onClick={() => handleTabChange('signin')}
+                            >
+                                Sign in to this account &rarr;
+                            </button>
+                        )}
+                    </div>
                 </div>
             )}
             {info && (
@@ -254,8 +498,8 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated }) => {
                 <h1 className="auth-heading">{isSignUp ? 'Create account' : 'Welcome back'}</h1>
                 <p className="auth-subheading">
                     {isSignUp
-                        ? 'Sign up to access the safety intelligence platform.'
-                        : 'Sign in to access your workspace and inspections.'}
+                        ? `Sign up to access the safety intelligence platform as a ${intendedRole === 'safety_officer' ? 'Safety Officer' : 'Safety Reporter'}.`
+                        : `Sign in to access your role-based workspace and inspections.`}
                 </p>
 
                 <div className="auth-tabs" role="tablist">
@@ -295,6 +539,7 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated }) => {
                                 value={email}
                                 onChange={e => { setEmail(e.target.value); clearMessages(); }}
                                 autoComplete="email"
+                                disabled={loading || cooldownSeconds > 0}
                                 required
                             />
                             <span className="auth-eye-btn" style={{ pointerEvents: 'none' }}>
@@ -314,6 +559,7 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated }) => {
                                 value={password}
                                 onChange={e => { setPassword(e.target.value); clearMessages(); }}
                                 autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                                disabled={loading || cooldownSeconds > 0}
                                 required
                             />
                             <button
@@ -335,13 +581,23 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated }) => {
                         </div>
                     )}
 
-                    <button type="submit" className="auth-btn-primary" disabled={loading}>
+                    <button type="submit" className="auth-btn-primary" disabled={loading || cooldownSeconds > 0}>
                         {loading ? <span className="auth-spinner" /> : null}
                         {loading
                             ? isSignUp ? 'Creating account…' : 'Signing in…'
-                            : isSignUp ? 'Create account' : 'Sign in'}
+                            : cooldownSeconds > 0
+                                ? `Please wait (${cooldownSeconds}s)`
+                                : isSignUp ? 'Create account' : 'Sign in'}
                     </button>
                 </form>
+
+                {onSwitchRole && (
+                    <div style={{ marginTop: '16px', textAlign: 'center' }}>
+                        <button type="button" className="auth-btn-ghost" onClick={onSwitchRole}>
+                            <ArrowLeft size={14} style={{ display: 'inline-block', marginRight: '6px' }} /> Return to role selection
+                        </button>
+                    </div>
+                )}
 
                 <p className="auth-footer-note">CONSTRUCTGAURD · SAFETY INTELLIGENCE PLATFORM</p>
             </div>

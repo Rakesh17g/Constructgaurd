@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Plus, Download, Search, ChevronRight, Layers, X } from 'lucide-react';
+import { Plus, Download, Search, ChevronRight, Layers, X, ShieldCheck } from 'lucide-react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
-import { Store, Inspection, seed, isActive, downloadReport } from './types';
+import { Store, Inspection, seed, isActive, downloadReport, Role } from './types';
 import { Navigation } from './components/Navigation';
 import { Overview, InspectionTable } from './components/Overview';
 import { InspectionForm } from './components/InspectionForm';
@@ -42,9 +42,9 @@ const AuthLoader = () => (
 );
 
 /* ── Main dashboard (only rendered when authenticated) ───── */
-const Dashboard: React.FC<{ user: User; onSignOut: () => void }> = ({ user, onSignOut }) => {
+const Dashboard: React.FC<{ user: User; role: Role; onSignOut: () => void }> = ({ user, role, onSignOut }) => {
     const [store, S] = useState<Store>(seed());
-    const [page, P] = useState('Overview');
+    const [page, P] = useState(role === 'reporter' ? 'Inspections' : 'Overview');
     const [site, Site] = useState('all');
     const [query, Q] = useState('');
     const [status, Status] = useState('all');
@@ -54,6 +54,21 @@ const Dashboard: React.FC<{ user: User; onSignOut: () => void }> = ({ user, onSi
     const [saveState, SaveState] = useState('loading');
     const [message, Message] = useState('');
     const saving = useRef(false);
+
+    const refreshData = () => {
+        try {
+            const text = localStorage.getItem('site-sentinel-data');
+            if (text) {
+                const d = JSON.parse(text);
+                if (d.version === 1 && Array.isArray(d.sites) && Array.isArray(d.inspections)) {
+                    S(d);
+                    SaveState('saved');
+                }
+            }
+        } catch (err) {
+            console.error('Data refresh error:', err);
+        }
+    };
 
     useEffect(() => {
         const loadData = async () => {
@@ -72,6 +87,31 @@ const Dashboard: React.FC<{ user: User; onSignOut: () => void }> = ({ user, onSi
         loadData();
     }, []);
 
+    // Sync across browser tabs and local updates
+    useEffect(() => {
+        const handleStorage = (e: StorageEvent) => {
+            if (e.key === 'site-sentinel-data') {
+                refreshData();
+            }
+        };
+        const handleCustomUpdate = () => {
+            refreshData();
+        };
+        window.addEventListener('storage', handleStorage);
+        window.addEventListener('constructgaurd:data-updated', handleCustomUpdate);
+        return () => {
+            window.removeEventListener('storage', handleStorage);
+            window.removeEventListener('constructgaurd:data-updated', handleCustomUpdate);
+        };
+    }, []);
+
+    // Automatically re-fetch fresh records when Analytics page is opened
+    useEffect(() => {
+        if (page === 'Analytics') {
+            refreshData();
+        }
+    }, [page]);
+
     useEffect(() => {
         if (!message) return;
         const t = setTimeout(() => Message(''), 9000);
@@ -83,6 +123,7 @@ const Dashboard: React.FC<{ user: User; onSignOut: () => void }> = ({ user, onSi
         const previous = store; saving.current = true; S(next); SaveState('saving');
         try {
             localStorage.setItem('site-sentinel-data', JSON.stringify(next));
+            window.dispatchEvent(new CustomEvent('constructgaurd:data-updated'));
             SaveState('saved');
         } catch (err) {
             console.error(err); S(previous); SaveState('save failed');
@@ -90,7 +131,11 @@ const Dashboard: React.FC<{ user: User; onSignOut: () => void }> = ({ user, onSi
         } finally { saving.current = false; }
     }
 
-    const items = store.inspections.filter(i => site === 'all' || i.site === site);
+    const items = store.inspections.filter(i => {
+        if (site !== 'all' && i.site !== site) return false;
+        if (role === 'reporter' && i.owner !== user.email) return false;
+        return true;
+    });
     const filtered = items.filter(i =>
         (status === 'all' || i.status === status) &&
         [i.id, i.zone, i.owner, store.sites.find(s => s.id === i.site)?.name || '']
@@ -113,8 +158,8 @@ const Dashboard: React.FC<{ user: User; onSignOut: () => void }> = ({ user, onSi
 
     const Modals = () => (
         <>
-            {upload && ready && <InspectionForm sites={store.sites} inspections={store.inspections} close={() => U(false)} save={saveInspection} />}
-            {selected && ready && <Detail key={selected.id + selected.history.length} item={selected} sites={store.sites} close={() => D(null)} save={saveInspection} />}
+            {upload && ready && <InspectionForm sites={store.sites} inspections={store.inspections} userEmail={user.email!} role={role} close={() => U(false)} save={saveInspection} />}
+            {selected && ready && <Detail key={selected.id + selected.history.length} item={selected} sites={store.sites} close={() => D(null)} save={saveInspection} userEmail={user.email} role={role} />}
             {message && (
                 <div className="toast-message alert bg-base-200 border border-base-300 shadow-xl">
                     <span>{message}</span>
@@ -124,20 +169,13 @@ const Dashboard: React.FC<{ user: User; onSignOut: () => void }> = ({ user, onSi
         </>
     );
 
-    if (page === 'Overview') {
-        return (
-            <>
-                <Hero3D go={P} />
-                <Modals />
-            </>
-        );
-    }
+
 
     return (
         <div className="app-layout bg-base-100 text-base-content">
             <Navigation
                 page={page} setPage={P} active={active} save={saveState}
-                userEmail={user.email} onSignOut={onSignOut}
+                userEmail={user.email} role={role} onSignOut={onSignOut}
             />
             <main className="main">
                 <header className="topbar border-base-300">
@@ -146,7 +184,7 @@ const Dashboard: React.FC<{ user: User; onSignOut: () => void }> = ({ user, onSi
                         <span className="text-base-content">{page}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                        <span className="badge badge-outline badge-warning">YOLO26n · AI prototype</span>
+                        <span className="badge badge-outline badge-warning">AI-Powered Safety</span>
                         <select aria-label="Filter sites" className="select select-bordered select-sm text-xs max-w-48" value={site} onChange={e => Site(e.target.value)}>
                             <option value="all">All construction sites</option>
                             {store.sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -180,7 +218,10 @@ const Dashboard: React.FC<{ user: User; onSignOut: () => void }> = ({ user, onSi
                         {saveState === 'loading' ? 'Loading saved workspace…' : 'Workspace unavailable. Editing is disabled until saved data can be loaded.'}
                     </div>
                 )}
-                {page === 'Inspections' && (
+                {(page === 'Overview' && role !== 'reporter') && (
+                    <Overview items={items} sites={store.sites} open={(i) => D(i.id)} go={P} upload={() => U(true)} />
+                )}
+                {(page === 'Inspections' && role === 'reporter') && (
                     <div className="section-stack">
                         <div className="toolbar">
                             <label className="input input-bordered">
@@ -198,10 +239,10 @@ const Dashboard: React.FC<{ user: User; onSignOut: () => void }> = ({ user, onSi
                         </section>
                     </div>
                 )}
-                {page === 'Corrective actions' && <Actions items={items} sites={store.sites} open={i => D(i.id)} />}
-                {page === 'Sites & zones' && <Sites sites={sites} items={items} add={s => commit({ ...store, sites: [...store.sites, s] })} view={id => { Site(id); P('Inspections'); Status('all'); Q(''); }} />}
+                {(page === 'Corrective actions' && role !== 'reporter') && <Actions items={items} sites={store.sites} open={i => D(i.id)} />}
+                {(page === 'Sites & zones' && role !== 'reporter') && <Sites sites={sites} items={items} add={s => commit({ ...store, sites: [...store.sites, s] })} view={id => { Site(id); P('Inspections'); Status('all'); Q(''); }} />}
                 {page === 'Project & system' && <Project />}
-                {page === 'Analytics' && <Analytics items={items} sites={sites} />}
+                {(page === 'Analytics' && role !== 'reporter') && <Analytics items={items} sites={sites} onRefresh={refreshData} />}
                 <footer className="footer text-base-content/40">
                     <span>Construct gaurd · Construction safety, from insight to action.</span>
                     <button className="hover:text-primary" onClick={() => P('Project & system')}>Project &amp; system ↗</button>
@@ -216,35 +257,231 @@ const Dashboard: React.FC<{ user: User; onSignOut: () => void }> = ({ user, onSi
 /* ── Root App — handles session state and routing ─────────── */
 const App: React.FC = () => {
     const [session, setSession] = useState<Session | null | undefined>(undefined); // undefined = loading
+    const [role, setRole] = useState<Role | null>(null);
+
+    // Initial view starts explicitly waiting for session rather than forcing 'hero' immediately
+    const [view, setView] = useState<'hero' | 'auth' | 'dashboard'>('hero');
+    const [intendedRole, setIntendedRole] = useState<'reporter' | 'safety_officer' | null>(null);
+    const [authError, setAuthError] = useState('');
+    const [isInitializing, setIsInitializing] = useState(true);
+
+    const fetchRole = async (u?: User | null): Promise<Role | null> => {
+        if (!u) {
+            setRole(null);
+            return null;
+        }
+        try {
+            const { data, error } = await supabase.from('users').select('role').eq('id', u.id).single();
+            if (error) {
+                console.warn('Profile load diagnostic (safe to ignore if provisioning/RLS block):', error.message);
+            }
+            if (!error && data?.role) {
+                let r: Role = 'reporter';
+                if (data.role === 'admin') {
+                    r = 'admin';
+                } else if (data.role === 'safety_officer' || data.role === 'inspector') {
+                    r = 'safety_officer';
+                } else if (data.role === 'reporter' || data.role === 'worker') {
+                    r = 'reporter';
+                }
+                setRole(r);
+                return r;
+            } else {
+                setRole(null);
+                return null;
+            }
+        } catch (err) {
+            console.error('Network or unexpected profile query error:', err);
+            setRole(null);
+            return null;
+        }
+    };
 
     useEffect(() => {
-        // 1. Get the initial session (handles page refresh)
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session);
+        // Parse implicit flow verification errors from URL hash
+        const hash = window.location.hash;
+        if (hash) {
+            const params = new URLSearchParams(hash.substring(1));
+            const errDesc = params.get('error_description') || params.get('error');
+            if (errDesc) {
+                const clean = errDesc.toLowerCase().includes('expired')
+                    ? 'Your email verification link has expired. Please sign in to request a new one.'
+                    : errDesc.replace(/\+/g, ' ');
+                setAuthError(clean);
+                window.history.replaceState(null, '', window.location.pathname);
+            }
+        }
+
+        const handleAuthContextUpdate = async (s: Session | null) => {
+            if (!s) {
+                setSession(null);
+                setRole(null);
+                setView((prev) => prev === 'dashboard' ? 'hero' : prev);
+                setIsInitializing(false);
+                return;
+            }
+
+            setSession(s);
+            const fetchedRole = await fetchRole(s.user);
+
+            if (!fetchedRole) {
+                setIsInitializing(false);
+                return; // Retain current view, fallback UI handles 'missing role' later
+            }
+
+            // Only transition to Dashboard instantly if they aren't purposely in Auth with an active role mismatch trap.
+            setView((prevView) => {
+                // If they reloaded explicitly on the hero, redirect strictly back into their workspace
+                if (prevView === 'hero' || prevView === 'auth') {
+                    return 'dashboard';
+                }
+                return prevView;
+            });
+            setIsInitializing(false);
+        };
+
+        // 1. Get initial session securely
+        supabase.auth.getSession().then(({ data: { session: s } }) => {
+            handleAuthContextUpdate(s);
         });
 
-        // 2. Handle password-reset redirect (detectSessionInUrl does this)
-        // 3. Listen for auth state changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session);
+        // 2. Listen securely avoiding recursive infinite states
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, s) => {
+            // Do not override view maliciously if SIGNED_IN event fires from Auth.tsx while validating intents
+            if (_event === 'SIGNED_OUT') {
+                setSession(null);
+                setRole(null);
+                setView('hero');
+            } else if (_event === 'SIGNED_IN' || _event === 'TOKEN_REFRESHED') {
+                handleAuthContextUpdate(s);
+            }
         });
 
         return () => subscription.unsubscribe();
     }, []);
 
     const handleSignOut = async () => {
-        await supabase.auth.signOut();
+        try { await supabase.auth.signOut(); } catch (e) { console.error('Sign-out error:', e); }
         setSession(null);
+        setRole(null);
+        setView('hero');
+        setAuthError('');
     };
 
-    // Still checking session
-    if (session === undefined) return <AuthLoader />;
+    const proceed = async (targetRole: 'reporter' | 'safety_officer') => {
+        setIntendedRole(targetRole);
+        setAuthError('');
+        if (!session) {
+            setView('auth');
+            return;
+        }
 
-    // Not logged in
-    if (!session) return <Auth onAuthenticated={() => supabase.auth.getSession().then(({ data }) => setSession(data.session))} />;
+        let currentRole = role;
+        if (currentRole === null) currentRole = await fetchRole(session.user);
 
-    // Logged in — show dashboard
-    return <Dashboard user={session.user} onSignOut={handleSignOut} />;
+        if (!currentRole) {
+            setAuthError('Role not assigned. Contact your administrator to provision this account.');
+            return;
+        }
+
+        const isOfficer = currentRole === 'safety_officer' || currentRole === 'admin';
+        if (targetRole === 'safety_officer' && !isOfficer) {
+            setAuthError('This account is registered as a Safety Reporter. Please select Safety Reporter to continue.');
+            return;
+        }
+
+        if (targetRole === 'reporter' && currentRole === 'safety_officer') {
+            setAuthError('This account is registered as a Safety Officer. Please select Safety Officer to continue.');
+            return;
+        }
+
+        setView('dashboard');
+    };
+
+    // Strict race-condition eliminator screen
+    if (isInitializing || session === undefined) return <AuthLoader />;
+
+    if (view === 'hero') {
+        return (
+            <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
+                <Hero3D go={(page) => proceed(page as 'reporter' | 'safety_officer')} />
+                {authError && (
+                    <div className="toast-message alert bg-error text-error-content shadow-xl" style={{ position: 'absolute', bottom: 24, zIndex: 50, left: '50%', transform: 'translateX(-50%)' }}>
+                        <span>{authError}</span>
+                        <button onClick={() => setAuthError('')}><X size={17} /></button>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    if (view === 'auth') {
+        return <Auth intendedRole={intendedRole} onSwitchRole={() => {
+            setView('hero');
+            setAuthError('');
+        }} onAuthenticated={async () => {
+            // Local login finished resolving. Validate roles explicitly before transferring them cleanly.
+            setIsInitializing(true);
+            const { data } = await supabase.auth.getSession();
+            setSession(data.session);
+
+            if (data.session) {
+                const r = await fetchRole(data.session.user);
+
+                if (!r) {
+                    try { await supabase.auth.signOut(); } catch (e) { /* silent */ }
+                    setSession(null);
+                    setRole(null);
+                    setAuthError('Role not assigned. Contact your administrator to provision your account.');
+                    setView('hero');
+                    setIsInitializing(false);
+                    return;
+                }
+
+                if (intendedRole === 'safety_officer' && r !== 'safety_officer' && r !== 'admin') {
+                    try { await supabase.auth.signOut(); } catch (e) { /* silent */ }
+                    setSession(null);
+                    setRole(null);
+                    setAuthError('This account is registered as a Safety Reporter. Please select Safety Reporter to continue.');
+                    setView('hero');
+                    setIsInitializing(false);
+                    return;
+                }
+
+                if (intendedRole === 'reporter' && r === 'safety_officer') {
+                    try { await supabase.auth.signOut(); } catch (e) { /* silent */ }
+                    setSession(null);
+                    setRole(null);
+                    setAuthError('This account is registered as a Safety Officer. Please select Safety Officer to continue.');
+                    setView('hero');
+                    setIsInitializing(false);
+                    return;
+                }
+
+                setView('dashboard');
+                setIsInitializing(false);
+            } else {
+                setIsInitializing(false);
+            }
+        }} />;
+    }
+
+    // Role missing fallback when dashboard starts directly
+    if (!role) {
+        return (
+            <div className="hero3d-container flex flex-col items-center justify-center p-6 text-center gap-4">
+                <ShieldCheck size={48} className="text-warning" />
+                <h2 className="text-2xl font-bold">Role not assigned</h2>
+                <p className="opacity-70 max-w-sm">Your account has been created but has not been assigned a role. Please contact your administrator to provision your access.</p>
+                <div className="flex gap-4 mt-4">
+                    <button className="btn btn-outline" onClick={() => setView('hero')}>Return to home</button>
+                    <button className="btn btn-ghost" onClick={handleSignOut}>Sign out</button>
+                </div>
+            </div>
+        );
+    }
+
+    return <Dashboard user={session.user} role={role} onSignOut={handleSignOut} />;
 };
 
 createRoot(document.getElementById('root')!).render(<App />);

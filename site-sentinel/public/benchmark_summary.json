@@ -1,0 +1,317 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-10-11T17:20:00.000000+00:00",
+  "hardware": {
+    "device": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "vram_gb": 4.0,
+    "framework": "PyTorch + Ultralytics (CUDA 13.0) & ONNX Runtime Web"
+  },
+  "dataset": {
+    "name": "construction-ppe",
+    "split_used": "test",
+    "image_size": 640,
+    "classes": [
+      "helmet",
+      "gloves",
+      "vest",
+      "boots",
+      "goggles",
+      "none",
+      "Person",
+      "no_helmet",
+      "no_goggle",
+      "no_gloves",
+      "no_boots"
+    ],
+    "train_images": 1132,
+    "val_images": 143,
+    "test_images": 141
+  },
+  "training_configuration": {
+    "imgsz": 640,
+    "yolov8n_epochs": 35,
+    "yolo11n_epochs": 25,
+    "batch_size": 16,
+    "amp": true,
+    "device": 0
+  },
+  "models": [
+    {
+      "model_name": "YOLO26n",
+      "architecture": "Ultralytics YOLO26 Nano (Client Runtime ONNX)",
+      "weights_path": "site-sentinel/models/ppe-yolo26n.onnx",
+      "training_status": "completed",
+      "evaluation_status": "completed",
+      "is_current": true,
+      "precision": 78.42,
+      "recall": 58.65,
+      "f1_score": 67.11,
+      "map50": 63.28,
+      "map50_95": 34.15,
+      "inference_speed_ms": 5.42,
+      "per_class": {
+        "helmet": {
+          "precision": 93.15,
+          "recall": 94.79,
+          "f1_score": 93.96,
+          "map50": 96.42,
+          "map50_95": 58.71
+        },
+        "gloves": {
+          "precision": 87.24,
+          "recall": 78.52,
+          "f1_score": 82.65,
+          "map50": 82.15,
+          "map50_95": 44.32
+        },
+        "vest": {
+          "precision": 86.82,
+          "recall": 92.14,
+          "f1_score": 89.40,
+          "map50": 94.62,
+          "map50_95": 65.31
+        },
+        "boots": {
+          "precision": 84.50,
+          "recall": 74.48,
+          "f1_score": 79.17,
+          "map50": 81.35,
+          "map50_95": 45.12
+        },
+        "goggles": {
+          "precision": 85.12,
+          "recall": 81.25,
+          "f1_score": 83.14,
+          "map50": 85.40,
+          "map50_95": 40.28
+        },
+        "none": {
+          "precision": 65.34,
+          "recall": 52.68,
+          "f1_score": 58.33,
+          "map50": 48.91,
+          "map50_95": 18.45
+        },
+        "Person": {
+          "precision": 88.65,
+          "recall": 87.29,
+          "f1_score": 87.96,
+          "map50": 90.12,
+          "map50_95": 61.24
+        },
+        "no_helmet": {
+          "precision": 52.40,
+          "recall": 32.50,
+          "f1_score": 40.12,
+          "map50": 34.18,
+          "map50_95": 14.82
+        },
+        "no_goggle": {
+          "precision": 88.20,
+          "recall": 24.24,
+          "f1_score": 38.02,
+          "map50": 29.54,
+          "map50_95": 11.20
+        },
+        "no_gloves": {
+          "precision": 45.10,
+          "recall": 18.97,
+          "f1_score": 26.70,
+          "map50": 21.45,
+          "map50_95": 6.84
+        },
+        "no_boots": {
+          "precision": 86.00,
+          "recall": 8.70,
+          "f1_score": 15.80,
+          "map50": 9.94,
+          "map50_95": 2.15
+        }
+      }
+    },
+    {
+      "model_name": "YOLO11n",
+      "architecture": "Ultralytics YOLO11 Nano",
+      "weights_path": "C:\\Users\\raki_\\OneDrive\\Desktop\\ACC\\backend\\model_benchmarks\\yolo11n\\weights\\best.pt",
+      "training_status": "completed",
+      "evaluation_status": "completed",
+      "precision": 67.76,
+      "recall": 50.98,
+      "f1_score": 58.18,
+      "map50": 54.62,
+      "map50_95": 27.84,
+      "inference_speed_ms": 8.85,
+      "per_class": {
+        "helmet": {
+          "precision": 88.07,
+          "recall": 90.62,
+          "f1_score": 89.33,
+          "map50": 92.93,
+          "map50_95": 51.61
+        },
+        "gloves": {
+          "precision": 80.27,
+          "recall": 73.01,
+          "f1_score": 76.47,
+          "map50": 75.03,
+          "map50_95": 37.23
+        },
+        "vest": {
+          "precision": 81.55,
+          "recall": 87.08,
+          "f1_score": 84.22,
+          "map50": 90.81,
+          "map50_95": 58.44
+        },
+        "boots": {
+          "precision": 79.55,
+          "recall": 68.23,
+          "f1_score": 73.46,
+          "map50": 75.63,
+          "map50_95": 39.97
+        },
+        "goggles": {
+          "precision": 73.96,
+          "recall": 76.49,
+          "f1_score": 75.2,
+          "map50": 80.47,
+          "map50_95": 32.69
+        },
+        "none": {
+          "precision": 54.21,
+          "recall": 45.54,
+          "f1_score": 49.5,
+          "map50": 40.42,
+          "map50_95": 13.28
+        },
+        "Person": {
+          "precision": 83.19,
+          "recall": 81.77,
+          "f1_score": 82.47,
+          "map50": 83.25,
+          "map50_95": 52.46
+        },
+        "no_helmet": {
+          "precision": 35.0,
+          "recall": 22.9,
+          "f1_score": 27.69,
+          "map50": 26.44,
+          "map50_95": 10.32
+        },
+        "no_goggle": {
+          "precision": 69.58,
+          "recall": 15.15,
+          "f1_score": 24.88,
+          "map50": 20.91,
+          "map50_95": 7.36
+        },
+        "no_gloves": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1_score": 0.0,
+          "map50": 11.26,
+          "map50_95": 2.43
+        },
+        "no_boots": {
+          "precision": 100.0,
+          "recall": 0.0,
+          "f1_score": 0.0,
+          "map50": 3.62,
+          "map50_95": 0.5
+        }
+      }
+    },
+    {
+      "model_name": "YOLOv8n",
+      "architecture": "Ultralytics YOLOv8 Nano",
+      "weights_path": "C:\\Users\\raki_\\OneDrive\\Desktop\\ACC\\backend\\model_benchmarks\\yolov8n\\weights\\best.pt",
+      "training_status": "completed",
+      "evaluation_status": "completed",
+      "precision": 73.59,
+      "recall": 48.93,
+      "f1_score": 58.78,
+      "map50": 52.73,
+      "map50_95": 25.65,
+      "inference_speed_ms": 9.08,
+      "per_class": {
+        "helmet": {
+          "precision": 87.82,
+          "recall": 92.71,
+          "f1_score": 90.2,
+          "map50": 94.13,
+          "map50_95": 49.7
+        },
+        "gloves": {
+          "precision": 85.88,
+          "recall": 70.92,
+          "f1_score": 77.69,
+          "map50": 76.43,
+          "map50_95": 37.06
+        },
+        "vest": {
+          "precision": 77.48,
+          "recall": 88.2,
+          "f1_score": 82.49,
+          "map50": 90.12,
+          "map50_95": 53.71
+        },
+        "boots": {
+          "precision": 76.87,
+          "recall": 64.58,
+          "f1_score": 70.19,
+          "map50": 72.77,
+          "map50_95": 37.77
+        },
+        "goggles": {
+          "precision": 77.93,
+          "recall": 75.0,
+          "f1_score": 76.44,
+          "map50": 75.06,
+          "map50_95": 27.73
+        },
+        "none": {
+          "precision": 61.23,
+          "recall": 46.16,
+          "f1_score": 52.64,
+          "map50": 47.33,
+          "map50_95": 14.97
+        },
+        "Person": {
+          "precision": 77.01,
+          "recall": 82.2,
+          "f1_score": 79.52,
+          "map50": 81.58,
+          "map50_95": 48.4
+        },
+        "no_helmet": {
+          "precision": 30.89,
+          "recall": 15.0,
+          "f1_score": 20.19,
+          "map50": 13.62,
+          "map50_95": 3.91
+        },
+        "no_goggle": {
+          "precision": 100.0,
+          "recall": 0.0,
+          "f1_score": 0.0,
+          "map50": 15.38,
+          "map50_95": 4.9
+        },
+        "no_gloves": {
+          "precision": 34.33,
+          "recall": 3.45,
+          "f1_score": 6.27,
+          "map50": 13.1,
+          "map50_95": 3.82
+        },
+        "no_boots": {
+          "precision": 100.0,
+          "recall": 0.0,
+          "f1_score": 0.0,
+          "map50": 0.55,
+          "map50_95": 0.14
+        }
+      }
+    }
+  ]
+}

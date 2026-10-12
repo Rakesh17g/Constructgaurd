@@ -4,7 +4,7 @@ import { ArrowRight } from 'lucide-react';
 import { Application } from '@splinetool/runtime';
 import './Hero3D.css';
 
-export const Hero3D = ({ go }: { go: (page: string) => void }) => {
+export const Hero3D = ({ go }: { go: (role: 'reporter' | 'safety_officer') => void }) => {
     const [isLoading, setIsLoading] = useState(true);
     const containerRef = useRef<HTMLDivElement>(null);
     const cursorRef = useRef<HTMLDivElement>(null);
@@ -122,12 +122,14 @@ export const Hero3D = ({ go }: { go: (page: string) => void }) => {
                     Secure your construction sites with YOLO-powered image detection designed to calculate risks instantly and make your safety protocol foolproof.
                 </p>
 
-                <div className="hero3d-buttons">
-                    <button onClick={() => go('Analytics')} className="hero3d-btn hero3d-btn-primary">
-                        Explore analytics <ArrowRight size={18} />
+                <div className="hero3d-buttons" style={{ display: 'grid', gap: '14px', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', width: '100%', maxWidth: '600px' }}>
+                    <button onClick={() => go('reporter')} className="hero3d-btn hero3d-btn-secondary" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '16px 21px', height: 'auto', gap: '6px' }}>
+                        <span style={{ fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 650 }}>Safety Reporter <ArrowRight size={16} /></span>
+                        <span style={{ fontSize: '11.5px', opacity: 0.65, fontWeight: 'normal', textAlign: 'left', lineHeight: 1.45 }}>Report unsafe conditions and track your reports.</span>
                     </button>
-                    <button onClick={() => go('Inspections')} className="hero3d-btn hero3d-btn-secondary">
-                        View inspections
+                    <button onClick={() => go('safety_officer')} className="hero3d-btn hero3d-btn-primary" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '16px 21px', height: 'auto', gap: '6px' }}>
+                        <span style={{ fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>Safety Officer <ArrowRight size={16} /></span>
+                        <span style={{ fontSize: '11.5px', opacity: 0.65, fontWeight: 'normal', textAlign: 'left', lineHeight: 1.45 }}>Manage corrective actions and verify safety compliance.</span>
                     </button>
                 </div>
 

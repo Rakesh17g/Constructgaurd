@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { X, Upload, Info, ArrowRight } from 'lucide-react';
 import { Site, Inspection, Analysis, scoreFor, risk, riskClass, readImage } from '../types';
-import { analyzeImage } from '../inference/client';
+import { analyzeImage, resetModelState } from '../inference/client';
 import { DetectionEvidence } from './DetectionEvidence';
 
-export const InspectionForm: React.FC<{ sites: Site[]; inspections: Inspection[]; close: () => void; save: (i: Inspection) => void }> = ({ sites, inspections, close, save }) => {
+export const InspectionForm: React.FC<{ sites: Site[]; inspections: Inspection[]; userEmail?: string; role?: string; close: () => void; save: (i: Inspection) => void }> = ({ sites, inspections, userEmail, role, close, save }) => {
     const [site, setSite] = useState(sites[0]?.id || '');
     const selected = sites.find(s => s.id === site)!;
     const [zone, setZone] = useState(selected?.zones[0] || '');
@@ -14,7 +14,7 @@ export const InspectionForm: React.FC<{ sites: Site[]; inspections: Inspection[]
     const [analysis, AnalysisResult] = useState<Analysis | null>(null);
     const m = h + v > 1;
     const r = inspections.some(i => !i.demo && i.site === site && i.zone === zone && Date.parse(i.created) <= Date.now() && Date.now() - Date.parse(i.created) < 30 * 86400000 && ((h > 0 && i.helmets > 0) || (v > 0 && i.vests > 0)));
-    const [owner, Owner] = useState('');
+    const [owner, Owner] = useState((role === 'reporter' && userEmail) ? userEmail : '');
     const [due, Due] = useState('');
     const [notes, Notes] = useState('');
     const [image, Image] = useState('');
@@ -22,7 +22,10 @@ export const InspectionForm: React.FC<{ sites: Site[]; inspections: Inspection[]
     const [loading, Loading] = useState(false);
     const score = scoreFor(h, v, m, r, c);
 
-    async function runDetection(src: string) {
+    async function runDetection(src: string, isRetry = false) {
+        // On a retry, clear any cached model-load error so a fresh load
+        // attempt is made (avoids permanently frozen "28858136" errors).
+        if (isRetry) resetModelState();
         Loading(true);
         ErrorText('');
         AnalysisResult(null);
@@ -34,8 +37,10 @@ export const InspectionForm: React.FC<{ sites: Site[]; inspections: Inspection[]
             H(result.missingHelmets);
             V(result.missingVests);
         } catch (err: any) {
-            // client.ts now produces specific error messages — surface them directly
-            ErrorText(err.message || 'Detection failed');
+            // client.ts produces readable error messages including Emscripten
+            // abort codes translated to human-friendly text.
+            const msg = (err instanceof Error ? err.message : String(err)) || 'Detection failed. Please retry.';
+            ErrorText(msg);
         } finally {
             Loading(false);
         }
@@ -137,12 +142,12 @@ export const InspectionForm: React.FC<{ sites: Site[]; inspections: Inspection[]
                         )}
 
                         {image && !analysis && !loading && (
-                            <button type="button" className="btn btn-sm btn-outline" onClick={() => runDetection(image)}>Retry detection</button>
+                            <button type="button" className="btn btn-sm btn-outline" onClick={() => runDetection(image, true)}>Retry detection</button>
                         )}
                     </div>
 
                     <div className="form-grid">
-                        <label className="field">Missing-helmet detections (+25 each)
+                        <label className="field">Missing-helmet detections (+50 each)
                             <input className="input input-bordered" readOnly value={analysis ? h : (loading ? 'Analyzing...' : 'Pending analysis')} />
                         </label>
                         <label className="field">Missing-vest detections (+15 each)
@@ -171,7 +176,11 @@ export const InspectionForm: React.FC<{ sites: Site[]; inspections: Inspection[]
 
                     <div className="form-grid">
                         <label className="field">Responsible supervisor {score >= 30 ? '*' : '(optional)'}
-                            <input className="input input-bordered" placeholder="Supervisor name" required={score >= 30} value={owner} onChange={e => Owner(e.target.value)} />
+                            {(role === 'reporter') ? (
+                                <input className="input input-bordered" readOnly value={owner} />
+                            ) : (
+                                <input className="input input-bordered" placeholder="Supervisor name" required={score >= 30} value={owner} onChange={e => Owner(e.target.value)} />
+                            )}
                         </label>
                         <label className="field">Action due date {score >= 30 ? '*' : '(optional)'}
                             <input className="input input-bordered" type="date" required={score >= 30} value={due} onChange={e => Due(e.target.value)} />
